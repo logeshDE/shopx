@@ -2,6 +2,7 @@ from pathlib import Path
 from decouple import config, config as env
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 SECRET_KEY = config('SECRET_KEY')
 
 INSTALLED_APPS = [
@@ -15,12 +16,20 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'dashboard.apps.DashboardConfig',
+
     # Third party
     'rest_framework',
+
     # Local
     'accounts',
-    'products.apps.ProductsConfig', 'categories', 'cart.apps.CartConfig', 'checkout',
-    'payment', 'orders.apps.OrdersConfig', 'wishlist.apps.WishlistConfig', 'reviews',
+    'products.apps.ProductsConfig',
+    'categories',
+    'cart.apps.CartConfig',
+    'checkout',
+    'payment',
+    'orders.apps.OrdersConfig',
+    'wishlist.apps.WishlistConfig',
+    'reviews',
     'notifications',
 ]
 
@@ -39,6 +48,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+WSGI_APPLICATION = 'config.wsgi.application'
+
 TEMPLATES = [{
     'BACKEND': 'django.template.backends.django.DjangoTemplates',
     'DIRS': [BASE_DIR / 'templates'],
@@ -54,9 +65,10 @@ TEMPLATES = [{
 }]
 
 AUTH_USER_MODEL = 'accounts.User'
+
 AUTHENTICATION_BACKENDS = [
-    'accounts.backends.EmailBackend',          # front-end: email + password
-    'django.contrib.auth.backends.ModelBackend',  # admin: username + password fallback
+    'accounts.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 LOGIN_URL = '/accounts/login/'
@@ -71,19 +83,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='logeshwararavichandran811@gmail.com')
 
-RAZORPAY_KEY_ID     = config('RAZORPAY_KEY_ID',     default='')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET',  default='')
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 
 REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
-
-CELERY_BROKER_URL         = REDIS_URL
-CELERY_RESULT_BACKEND     = REDIS_URL
-CELERY_ACCEPT_CONTENT     = ['json']
-CELERY_TASK_SERIALIZER    = 'json'
-CELERY_RESULT_SERIALIZER  = 'json'
-CELERY_TIMEZONE           = 'Asia/Kolkata'
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata'
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_ALWAYS_EAGER  = env('CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool)
+CELERY_TASK_ALWAYS_EAGER = env('CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = False
