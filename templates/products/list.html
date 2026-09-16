@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load query_tags %}
+
+{% block title %}
+{% if q %}
+Results for "{{ q }}"
+{% elif current_category %}
+{{ current_category.name }}
+{% else %}
+All Products
+{% endif %} — ShopX
+{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ──────────────────────────────────────────────── #}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb" style="background:none;padding:0">
+        <li class="breadcrumb-item">
+            <a href="{% url 'products:home' %}" class="text-success">Home</a>
+        </li>
+        {% if breadcrumbs %}
+        {% for crumb in breadcrumbs %}
+        {% if forloop.last %}
+        <li class="breadcrumb-item active text-secondary">{{ crumb.name }}</li>
+        {% else %}
+        <li class="breadcrumb-item">
+            <a href="{{ crumb.get_absolute_url }}" class="text-success">{{ crumb.name }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% elif q %}
+        <li class="breadcrumb-item active text-secondary">Search</li>
+        {% else %}
+        <li class="breadcrumb-item active text-secondary">All Products</li>
+        {% endif %}
+    </ol>
+</nav>
+
+<div class="row g-4">
+
+    {# ── Sidebar (desktop always visible, mobile collapsible) ─── #}
+    <div class="col-12 d-lg-none mb-2">
+        <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse"
+            data-bs-target="#filter-sidebar-mobile">
+            <i class="bi bi-funnel me-1"></i>Filters
+            {% if q or min_price or max_price or selected_brand_ids or in_stock or discount %}
+            <span class="badge bg-success ms-1">Active</span>
+            {% endif %}
+        </button>
+        <div class="collapse mt-2 p-3 rounded" id="filter-sidebar-mobile"
+            style="background:#161b22;border:1px solid #30363d">
+            {% include 'products/_filter_sidebar.html' %}
+        </div>
+    </div>
+
+    <div class="col-lg-3 d-none d-lg-block">
+        <div class="p-3 rounded" style="background:#161b22;border:1px solid #30363d;
+                                     position:sticky;top:16px">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-medium" style="color:#e6edf3">
+                    <i class="bi bi-funnel me-1"></i>Filters
+                </h6>
+            </div>
+            {% include 'products/_filter_sidebar.html' %}
+        </div>
+    </div>
+
+    {# ── Main content ─────────────────────────────────────────── #}
+    <div class="col-lg-9">
+
+        {# Page heading #}
+        {% if q %}
+        <div class="mb-3">
+            <h5 class="fw-medium mb-0" style="color:#e6edf3">
+                Results for "<span class="text-success">{{ q }}</span>"
+            </h5>
+            <small class="text-secondary">{{ total }} product{{ total|pluralize }} found</small>
+        </div>
+        {% elif current_category %}
+        <div class="mb-3">
+            <h5 class="fw-medium mb-0" style="color:#e6edf3">{{ current_category.name }}</h5>
+            <small class="text-secondary">{{ total }} product{{ total|pluralize }}</small>
+        </div>
+        {% endif %}
+
+        {# Sort bar #}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <small class="text-secondary">
+                Showing <strong class="text-light">{{ products.start_index }}–{{ products.end_index }}</strong>
+                of <strong class="text-light">{{ total }}</strong> products
+            </small>
+            <select class="form-select form-select-sm w-auto"
+                style="background:#161b22;border-color:#30363d;color:#e6edf3" onchange="
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', this.value);
+                url.searchParams.delete('page');
+                window.location.href = url.toString();
+              ">
+                <option value="newest" {% if sort_key == 'newest' %}selected{% endif %}>
+                    Newest first
+                </option>
+                <option value="price_asc" {% if sort_key == 'price_asc' %}selected{% endif %}>
+                    Price: Low to High
+                </option>
+                <option value="price_desc" {% if sort_key == 'price_desc' %}selected{% endif %}>
+                    Price: High to Low
+                </option>
+                <option value="name" {% if sort_key == 'name' %}selected{% endif %}>
+                    Name: A–Z
+                </option>
+            </select>
+        </div>
+
+        {# Product grid #}
+        {% if products.object_list %}
+        <div class="row g-3">
+            {% for product in products %}
+            <div class="col-6 col-md-4 col-xl-3">
+                {% include 'products/_card.html' with product=product %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Pagination — uses querystring tag to preserve all filters #}
+        {% if products.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center flex-wrap">
+
+                {% if products.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% querystring page=products.previous_page_number %}"
+                        style="background:#161b22;border-color:#30363d;color:#e6edf3">
+                        ‹ Prev
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in products.paginator.page_range %}
+                {% if products.number == num %}
+                <li class="page-item active">
+                    <span class="page-link" style="background:#238636;border-color:#238636">{{ num }}</span>
+                </li>
+                {% elif num >= products.number|add:"-2" and num <= products.number|add:"2" %} <li class="page-item">
+                    <a class="page-link" href="?{% querystring page=num %}"
+                        style="background:#161b22;border-color:#30363d;color:#e6edf3">
+                        {{ num }}
+                    </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if products.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% querystring page=products.next_page_number %}"
+                            style="background:#161b22;border-color:#30363d;color:#e6edf3">
+                            Next ›
+                        </a>
+                    </li>
+                    {% endif %}
+
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-secondary">
+            <i class="bi bi-search" style="font-size:3rem"></i>
+            <p class="mt-3 mb-1">No products match your filters.</p>
+            <small>Try adjusting the price range or removing some filters.</small><br>
+            <a href="{% url 'products:list' %}" class="btn btn-outline-success btn-sm mt-3">Clear all filters</a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

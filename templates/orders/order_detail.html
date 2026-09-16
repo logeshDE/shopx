@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% block title %}Order {{ order.order_number }} — ShopX{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="fw-medium mb-0" style="color:#e6edf3">
+            Order #{{ order.order_number }}
+        </h5>
+        <small class="text-secondary">Placed on {{ order.created_at|date:"d M Y, h:i A" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'orders:invoice' order.order_number %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i>Invoice
+        </a>
+        <a href="{% url 'orders:list' %}" class="btn btn-sm btn-outline-secondary">
+            ← All Orders
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    {# ── Left column ─────────────────────────────────────────── #}
+    <div class="col-lg-8">
+
+        {# Status tracker #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-medium mb-0" style="color:#e6edf3">Order Status</h6>
+                <div>
+                    {% if order.payment_status == 'paid' %}
+                    <span class="badge" style="background:#0f2d14;color:#3fb950">
+                        <i class="bi bi-check-circle me-1"></i>Paid
+                    </span>
+                    {% elif order.payment_status == 'pending' %}
+                    <span class="badge" style="background:#3d2b00;color:#d29922">
+                        Payment Pending
+                    </span>
+                    {% elif order.payment_status == 'failed' %}
+                    <span class="badge bg-danger">Payment Failed</span>
+                    {% elif order.payment_status == 'refunded' %}
+                    <span class="badge" style="background:#1a2f5c;color:#79c0ff">Refunded</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Step tracker #}
+            <div class="d-flex align-items-center">
+                {% for s in order_steps %}
+                <div class="d-flex align-items-center {% if not forloop.last %}flex-grow-1{% endif %}">
+                    <div class="d-flex flex-column align-items-center" style="min-width:52px">
+                        <div style="width:26px;height:26px;border-radius:50%;
+                          display:flex;align-items:center;justify-content:center;
+                          font-size:11px;font-weight:500;
+                          background:{% if order.status == s or order.status == 'delivered' and forloop.counter <= 4 or order.status == 'shipped' and forloop.counter <= 3 or order.status == 'processing' and forloop.counter <= 2 %}#238636{% else %}#21262d{% endif %};
+                          color:#fff">
+                            <i class="bi bi-check" style="font-size:14px"></i>
+                        </div>
+                        <small style="font-size:.65rem;margin-top:4px;text-transform:capitalize;
+                            color:{% if order.status == s %}#e6edf3{% else %}#8b949e{% endif %}">
+                            {{ s }}
+                        </small>
+                    </div>
+                    {% if not forloop.last %}
+                    <div style="flex:1;height:1.5px;margin-bottom:20px;
+                          background:#30363d"></div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if order.status == 'cancelled' %}
+            <div class="mt-3 p-2 rounded" style="background:#2d0f0f;border:1px solid #f0453a">
+                <small class="text-danger">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Cancelled — {{ order.cancel_reason }}
+                </small>
+            </div>
+            {% elif order.status == 'returned' %}
+            <div class="mt-3 p-2 rounded" style="background:#2d1a2d;border:1px solid #d2a8ff">
+                <small style="color:#d2a8ff">
+                    <i class="bi bi-arrow-return-left me-1"></i>
+                    Return requested — {{ order.return_reason }}
+                </small>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Items #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">
+                Items ({{ items|length }})
+            </h6>
+            {% for item in items %}
+            <div class="d-flex gap-3 align-items-center
+                    {% if not forloop.last %}pb-3 mb-3{% endif %}"
+                style="{% if not forloop.last %}border-bottom:1px solid #21262d{% endif %}">
+                {% if item.image_url %}
+                <img src="{{ item.image_url }}"
+                    style="width:60px;height:60px;object-fit:cover;border-radius:6px;background:#0d1117">
+                {% else %}
+                <div style="width:60px;height:60px;border-radius:6px;background:#0d1117"></div>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <div style="color:#e6edf3;font-size:.875rem">{{ item.product_name }}</div>
+                    {% if item.brand_name %}
+                    <small class="text-secondary">{{ item.brand_name }}</small>
+                    {% endif %}
+                    <div class="text-secondary" style="font-size:.8rem">
+                        ₹{{ item.price|floatformat:0 }} × {{ item.quantity }}
+                    </div>
+                </div>
+                <div class="fw-medium text-success">
+                    ₹{{ item.total_price|floatformat:0 }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Delivery address #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-2" style="color:#e6edf3">Delivery Address</h6>
+            <div class="text-secondary" style="font-size:.875rem;line-height:1.7">
+                <strong style="color:#e6edf3">{{ order.address_full_name }}</strong><br>
+                {{ order.address_line1 }}
+                {% if order.address_line2 %}, {{ order.address_line2 }}{% endif %}<br>
+                {{ order.address_city }}, {{ order.address_state }} — {{ order.address_pincode }}<br>
+                <i class="bi bi-telephone me-1"></i>{{ order.address_phone }}
+            </div>
+        </div>
+
+        {# Status timeline #}
+        <div class="card p-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">Activity Timeline</h6>
+            {% for h in history %}
+            <div class="d-flex gap-3 {% if not forloop.last %}pb-3 mb-3{% endif %}"
+                style="{% if not forloop.last %}border-bottom:1px solid #21262d{% endif %}">
+                <div style="width:8px;height:8px;border-radius:50%;background:#238636;
+                      flex-shrink:0;margin-top:6px"></div>
+                <div>
+                    <div style="font-size:.875rem;color:#e6edf3;text-transform:capitalize">
+                        {{ h.status }}
+                    </div>
+                    {% if h.note %}
+                    <div class="text-secondary" style="font-size:.8rem">{{ h.note }}</div>
+                    {% endif %}
+                    <small class="text-secondary">{{ h.created_at|date:"d M Y, h:i A" }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    {# ── Right column ─────────────────────────────────────────── #}
+    <div class="col-lg-4">
+
+        {# Price summary #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">Price Details</h6>
+            <div class="d-flex flex-column gap-2" style="font-size:.85rem">
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Subtotal</span>
+                    <span style="color:#e6edf3">₹{{ order.subtotal|floatformat:0 }}</span>
+                </div>
+                {% if order.discount_amount %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Coupon ({{ order.coupon_code }})</span>
+                    <span class="text-success">−₹{{ order.discount_amount|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Shipping</span>
+                    <span style="color:#e6edf3">
+                        {% if order.shipping_cost == 0 %}Free{% else %}₹{{ order.shipping_cost|floatformat:0 }}{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Tax (GST)</span>
+                    <span style="color:#e6edf3">₹{{ order.tax_amount|floatformat:0 }}</span>
+                </div>
+                <hr style="border-color:#30363d;margin:4px 0">
+                <div class="d-flex justify-content-between fw-bold">
+                    <span style="color:#e6edf3">Total</span>
+                    <span class="text-success">₹{{ order.total|floatformat:0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Payment info #}
+        {% if order.payment %}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-2" style="color:#e6edf3">Payment</h6>
+            <div style="font-size:.82rem;color:#8b949e;line-height:1.8">
+                Gateway: <span style="color:#e6edf3">{{ order.payment.get_gateway_display }}</span><br>
+                Status: <span style="color:#e6edf3">{{ order.payment.get_status_display }}</span><br>
+                {% if order.payment.gateway_payment_id %}
+                ID: <span style="color:#e6edf3;font-family:monospace;font-size:.76rem">
+                    {{ order.payment.gateway_payment_id|truncatechars:28 }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Actions #}
+        <div class="d-flex flex-column gap-2">
+
+            {% if order.can_cancel %}
+            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancel-modal">
+                <i class="bi bi-x-circle me-1"></i>Cancel Order
+            </button>
+            {% endif %}
+
+            {% if order.can_return %}
+            <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#return-modal">
+                <i class="bi bi-arrow-return-left me-1"></i>Return Order
+            </button>
+            {% endif %}
+
+            <a href="{% url 'orders:invoice' order.order_number %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-file-pdf me-1"></i>Download Invoice
+            </a>
+
+        </div>
+    </div>
+
+</div>
+
+{# ── Cancel modal ──────────────────────────────────────────── #}
+<div class="modal fade" id="cancel-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#161b22;border:1px solid #30363d">
+            <div class="modal-header" style="border-color:#30363d">
+                <h5 class="modal-title" style="color:#e6edf3">Cancel Order</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'orders:cancel' order.order_number %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-secondary" style="font-size:.875rem">
+                        Are you sure you want to cancel
+                        <strong style="color:#e6edf3">{{ order.order_number }}</strong>?
+                        {% if order.payment_status == 'paid' %}
+                        A refund will be initiated within 5–7 business days.
+                        {% endif %}
+                    </p>
+                    <label class="form-label small text-secondary">
+                        Reason for cancellation <span class="text-danger">*</span>
+                    </label>
+                    <select name="reason" class="form-select form-select-sm"
+                        style="background:#0d1117;border-color:#30363d;color:#e6edf3" required>
+                        <option value="">Select a reason…</option>
+                        <option>Changed my mind</option>
+                        <option>Found a better price elsewhere</option>
+                        <option>Ordered by mistake</option>
+                        <option>Delivery time too long</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="modal-footer" style="border-color:#30363d">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Keep
+                        Order</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Yes, Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ── Return modal ──────────────────────────────────────────── #}
+<div class="modal fade" id="return-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#161b22;border:1px solid #30363d">
+            <div class="modal-header" style="border-color:#30363d">
+                <h5 class="modal-title" style="color:#e6edf3">Return Order</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'orders:return' order.order_number %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-secondary" style="font-size:.875rem">
+                        Our team will contact you within 24 hours to arrange the return pickup.
+                    </p>
+                    <label class="form-label small text-secondary">
+                        Reason for return <span class="text-danger">*</span>
+                    </label>
+                    <select name="reason" class="form-select form-select-sm"
+                        style="background:#0d1117;border-color:#30363d;color:#e6edf3" required>
+                        <option value="">Select a reason…</option>
+                        <option>Damaged product received</option>
+                        <option>Wrong product delivered</option>
+                        <option>Product not as described</option>
+                        <option>Missing parts or accessories</option>
+                        <option>Quality not satisfactory</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="modal-footer" style="border-color:#30363d">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm" style="color:#000">
+                        Submit Return Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

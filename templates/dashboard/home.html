@@ -1,0 +1,250 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block title %}Overview{% endblock %}
+{% block page_title %}Overview{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+{# ── KPI cards ─────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-currency-rupee me-1"></i>Total Revenue</div>
+            <div class="stat-value">₹{{ total_revenue|floatformat:0|intcomma }}</div>
+            <div class="stat-sub {% if revenue_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                <i class="bi bi-arrow-{% if revenue_change >= 0 %}up{% else %}down{% endif %}-short"></i>
+                {{ revenue_change|floatformat:1 }}% vs last month
+                <div class="text-secondary mt-1">₹{{ month_revenue|floatformat:0|intcomma }} this month</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-bag me-1"></i>Total Orders</div>
+            <div class="stat-value">{{ total_orders|intcomma }}</div>
+            <div class="stat-sub text-success">
+                <i class="bi bi-plus-circle me-1"></i>{{ month_orders }} this month
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-people me-1"></i>Customers</div>
+            <div class="stat-value">{{ total_customers|intcomma }}</div>
+            <div class="stat-sub text-success">
+                <i class="bi bi-person-plus me-1"></i>{{ new_customers }} new this month
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-box-seam me-1"></i>Products</div>
+            <div class="stat-value">{{ total_products|intcomma }}</div>
+            <div class="stat-sub">
+                {% if out_of_stock_cnt %}
+                <span class="text-danger">
+                    <i class="bi bi-x-circle me-1"></i>{{ out_of_stock_cnt }} out of stock
+                </span><br>
+                {% endif %}
+                {% if low_stock_count %}
+                <span class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>{{ low_stock_count }} low stock
+                </span>
+                {% endif %}
+                {% if not out_of_stock_cnt and not low_stock_count %}
+                <span class="text-success">
+                    <i class="bi bi-check-circle me-1"></i>All well stocked
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{# ── Charts ────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-hdr">Revenue — Last 30 Days</div>
+            <canvas id="revenue-chart" height="90"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card d-flex flex-column" style="min-height:260px">
+            <div class="chart-hdr">Order Status Breakdown</div>
+            <div class="flex-grow-1 d-flex align-items-center justify-content-center">
+                <canvas id="status-chart" style="max-height:210px"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Recent orders + Low stock ────────────────────────────── #}
+<div class="row g-3">
+
+    <div class="col-lg-7">
+        <div class="chart-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="chart-hdr mb-0">Recent Orders</div>
+                <a href="{% url 'dashboard:sales' %}" class="text-success text-decoration-none"
+                    style="font-size:.78rem">
+                    View analytics →
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="dtable">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td>
+                                <a href="/orders/{{ order.order_number }}/" class="text-success text-decoration-none"
+                                    style="font-family:monospace;font-size:.8rem">
+                                    {{ order.order_number }}
+                                </a>
+                            </td>
+                            <td style="color:#c9d1d9">{{ order.user.email|truncatechars:22 }}</td>
+                            <td>{% include 'dashboard/_status_badge.html' with status=order.status %}</td>
+                            <td class="text-success fw-medium">₹{{ order.total|floatformat:0|intcomma }}</td>
+                            <td class="text-secondary">{{ order.created_at|date:"d M" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-3">No orders yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="chart-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="chart-hdr mb-0">
+                    Low Stock Alerts
+                    {% if low_stock %}
+                    <span class="badge bg-danger ms-1" style="font-size:.62rem">
+                        {{ low_stock|length }}
+                    </span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'dashboard:inventory' %}" class="text-success text-decoration-none"
+                    style="font-size:.78rem">
+                    Manage →
+                </a>
+            </div>
+
+            {% if low_stock %}
+            {% for inv in low_stock %}
+            <div class="d-flex justify-content-between align-items-center py-2
+                       {% if not forloop.last %}border-bottom{% endif %}" style="border-color:#21262d">
+                <div>
+                    <div style="font-size:.825rem;color:#e6edf3">
+                        {{ inv.product.name|truncatechars:36 }}
+                    </div>
+                    <small class="text-secondary">
+                        {{ inv.product.category.name|default:"—" }}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <div class="fw-medium {% if inv.quantity == 0 %}text-danger{% else %}text-warning{% endif %}"
+                        style="font-size:.825rem">
+                        {{ inv.quantity }} units
+                    </div>
+                    <small class="text-secondary">min {{ inv.low_stock_threshold }}</small>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-3 text-secondary">
+                <i class="bi bi-check-circle text-success" style="font-size:1.8rem"></i>
+                <p class="mt-2 mb-0" style="font-size:.85rem">All products well stocked</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.font.family = 'system-ui, sans-serif';
+    Chart.defaults.font.size = 12;
+    const GRID = '#21262d';
+
+    new Chart(document.getElementById('revenue-chart'), {
+        type: 'line',
+        data: {
+            labels: {{ daily_dates| safe }},
+        datasets: [{
+            label: 'Revenue',
+            data: {{ daily_revenue| safe }},
+        borderColor: '#3fb950',
+        backgroundColor: 'rgba(63,185,80,.07)',
+        fill: true, tension: .35,
+        pointRadius: 3, pointBackgroundColor: '#3fb950', pointHoverRadius: 5,
+    }]
+  },
+        options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: c => '₹' + c.parsed.y.toLocaleString('en-IN') } }
+        },
+        scales: {
+            x: { grid: { color: GRID }, ticks: { maxTicksLimit: 8 } },
+            y: {
+                grid: { color: GRID }, beginAtZero: true,
+                ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+            }
+        }
+    }
+});
+
+    const STATUS_COLORS = {
+        'Pending': '#d29922', 'Processing': '#388bfd', 'Shipped': '#79c0ff',
+        'Delivered': '#3fb950', 'Cancelled': '#f85149', 'Returned': '#d2a8ff',
+    };
+    const sLabels = {{ status_labels| safe }};
+    new Chart(document.getElementById('status-chart'), {
+        type: 'doughnut',
+        data: {
+            labels: sLabels,
+            datasets: [{
+                data: {{ status_data| safe }
+    },
+        backgroundColor: sLabels.map(l => STATUS_COLORS[l] || '#8b949e'),
+        borderColor: '#161b22', borderWidth: 2, hoverOffset: 4,
+    }]
+  },
+        options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 10, boxWidth: 10, font: { size: 11 } } }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block title %}Customer Analytics{% endblock %}
+{% block page_title %}Customer Analytics{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Customers</div>
+            <div class="stat-value">{{ total_customers|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Active Customers</div>
+            <div class="stat-value text-success">{{ active_customers|intcomma }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-hdr">New Customers — Last 12 Months</div>
+            <canvas id="customers-chart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-hdr">Top Reviewers</div>
+            {% for r in top_reviewers %}
+            <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.825rem">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#238636;
+                        color:#fff;font-size:.7rem;flex-shrink:0">
+                        {{ r.user__first_name.0|upper|default:r.user__email.0|upper }}
+                    </div>
+                    <span class="text-secondary" style="font-size:.8rem">
+                        {{ r.user__email|truncatechars:20 }}
+                    </span>
+                </div>
+                <span class="badge" style="background:#0f2d14;color:#3fb950">
+                    {{ r.review_count }}
+                </span>
+            </div>
+            {% empty %}
+            <p class="text-secondary text-center py-3" style="font-size:.85rem">
+                No reviews yet
+            </p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="chart-card">
+    <div class="chart-hdr">Top Customers by Lifetime Spend</div>
+    <div class="table-responsive">
+        <table class="dtable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Customer</th>
+                    <th>Orders</th>
+                    <th>Avg Order</th>
+                    <th>Total Spend</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in top_customers %}
+                <tr>
+                    <td class="text-secondary">{{ forloop.counter }}</td>
+                    <td>
+                        <div style="color:#e6edf3;font-size:.825rem">
+                            {{ c.user__first_name }} {{ c.user__last_name }}
+                        </div>
+                        <small class="text-secondary">{{ c.user__email }}</small>
+                    </td>
+                    <td>{{ c.order_count }}</td>
+                    <td class="text-secondary">₹{{ c.avg_order|floatformat:0|intcomma }}</td>
+                    <td class="fw-medium text-success">₹{{ c.total_spend|floatformat:0|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-secondary py-3">No data yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    Chart.defaults.color = '#8b949e';
+    new Chart(document.getElementById('customers-chart'), {
+        type: 'bar',
+        data: {
+            labels: {{ monthly_labels| safe }},
+        datasets: [{
+            label: 'New Customers',
+            data: {{ monthly_customers| safe }},
+        backgroundColor: 'rgba(56,139,253,.55)',
+        borderColor: '#388bfd', borderWidth: 1, borderRadius: 4,
+    }]
+  },
+        options: {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: '#21262d' } },
+            y: { grid: { color: '#21262d' }, beginAtZero: true, ticks: { precision: 0 } },
+        }
+    }
+});
+</script>
+{% endblock %}

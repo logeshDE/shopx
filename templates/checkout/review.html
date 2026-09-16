@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Review Order — ShopX{% endblock %}
+
+{% block content %}
+<h5 class="fw-medium mb-4" style="color:#e6edf3">Review Your Order</h5>
+
+<div class="row g-4">
+
+    {# ── Left: Items + address ───────────────────────────────── #}
+    <div class="col-lg-8">
+
+        {# Items #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">
+                Items ({{ items|length }})
+            </h6>
+            {% for item in items %}
+            <div class="d-flex gap-3 align-items-center mb-3
+                    {% if not forloop.last %}pb-3{% endif %}"
+                style="{% if not forloop.last %}border-bottom:1px solid #21262d{% endif %}">
+                {% if item.product.primary_image %}
+                <img src="{{ item.product.primary_image.image.url }}"
+                    style="width:56px;height:56px;object-fit:cover;border-radius:6px;background:#0d1117">
+                {% else %}
+                <div style="width:56px;height:56px;border-radius:6px;background:#0d1117;
+                        display:flex;align-items:center;justify-content:center">
+                    <i class="bi bi-image text-secondary"></i>
+                </div>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <div style="color:#e6edf3;font-size:.875rem">{{ item.product.name }}</div>
+                    <small class="text-secondary">Qty: {{ item.quantity }}</small>
+                </div>
+                <div class="fw-medium text-success">
+                    ₹{{ item.total_price|floatformat:0 }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Delivery address #}
+        <div class="card p-3 mb-3" style="background:#161b22;border:1px solid #30363d">
+            <div class="d-flex justify-content-between align-items-start">
+                <h6 class="fw-medium mb-2" style="color:#e6edf3">Delivery Address</h6>
+                <a href="{% url 'checkout:address' %}" class="btn btn-sm btn-outline-secondary"
+                    style="font-size:.75rem">Change</a>
+            </div>
+            <div class="text-secondary" style="font-size:.875rem;line-height:1.7">
+                <strong style="color:#e6edf3">{{ address.full_name }}</strong><br>
+                {{ address.address_line1 }}
+                {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}<br>
+                {{ address.city }}, {{ address.state }} — {{ address.pincode }}<br>
+                <i class="bi bi-telephone me-1"></i>{{ address.phone }}
+            </div>
+        </div>
+
+        {# Shipping method #}
+        <div class="card p-3" style="background:#161b22;border:1px solid #30363d">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="fw-medium mb-1" style="color:#e6edf3">Shipping Method</h6>
+                    <small class="text-secondary">
+                        <i class="bi {{ shipping_option.icon }} me-1"></i>
+                        {{ shipping_option.name }} — {{ shipping_option.description }}
+                    </small>
+                </div>
+                <a href="{% url 'checkout:shipping' %}" class="btn btn-sm btn-outline-secondary"
+                    style="font-size:.75rem">Change</a>
+            </div>
+        </div>
+
+    </div>
+
+    {# ── Right: Price summary + coupon ───────────────────────── #}
+    <div class="col-lg-4">
+        <div class="card p-4 sticky-top" style="background:#161b22;border:1px solid #30363d;top:16px">
+
+            {# Coupon input #}
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">Coupon Code</h6>
+            <form method="post" class="d-flex gap-2 mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="apply_coupon">
+                <input type="text" name="coupon_code" value="{{ coupon_code }}" class="form-control form-control-sm"
+                    style="background:#0d1117;border-color:#30363d;color:#e6edf3" placeholder="e.g. SAVE10">
+                <button type="submit" class="btn btn-sm btn-outline-success">Apply</button>
+            </form>
+
+            {# Price breakdown #}
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">Price Details</h6>
+            <div class="d-flex flex-column gap-2" style="font-size:.875rem">
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Subtotal</span>
+                    <span style="color:#e6edf3">₹{{ totals.subtotal|floatformat:0 }}</span>
+                </div>
+                {% if totals.coupon_discount %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">
+                        Coupon ({{ coupon_code }})
+                    </span>
+                    <span class="text-success">−₹{{ totals.coupon_discount|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Shipping</span>
+                    <span {% if totals.free_shipping %}class="text-success" {% else %}style="color:#e6edf3" {% endif %}>
+                        {% if totals.free_shipping %}Free{% else %}₹{{ totals.shipping_cost|floatformat:0 }}{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Tax (18% GST)</span>
+                    <span style="color:#e6edf3">₹{{ totals.tax|floatformat:0 }}</span>
+                </div>
+            </div>
+
+            <hr style="border-color:#30363d;margin:16px 0">
+
+            <div class="d-flex justify-content-between mb-4 fw-bold">
+                <span style="color:#e6edf3;font-size:1.05rem">Total</span>
+                <span class="text-success fs-5">₹{{ totals.total|floatformat:0 }}</span>
+            </div>
+
+            <a href="{% url 'payment:page' %}" class="btn btn-success w-100 py-2">
+                <i class="bi bi-credit-card me-2"></i>Proceed to Payment →
+            </a>
+
+            <p class="text-center text-secondary mt-2 mb-0" style="font-size:.75rem">
+                <i class="bi bi-shield-lock me-1"></i>Secure 256-bit SSL checkout
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

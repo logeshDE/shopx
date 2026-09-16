@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Address — ShopX{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5 class="mb-4">{{ action }} Address</h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+
+                    <div class="col-6">
+                        <label class="form-label small text-secondary">Full Name</label>
+                        <input type="text" name="full_name" class="form-control"
+                            value="{{ form.full_name.value|default:'' }}">
+                    </div>
+
+                    <div class="col-6">
+                        <label class="form-label small text-secondary">Phone</label>
+                        <input type="text" name="phone" class="form-control" value="{{ form.phone.value|default:'' }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-secondary">Address Line 1</label>
+                        <input type="text" name="address_line1" class="form-control"
+                            value="{{ form.address_line1.value|default:'' }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-secondary">
+                            Address Line 2 <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="text" name="address_line2" class="form-control"
+                            value="{{ form.address_line2.value|default:'' }}" placeholder="Apartment, suite, etc.">
+                    </div>
+
+                    <div class="col-6">
+                        <label class="form-label small text-secondary">City</label>
+                        <input type="text" name="city" class="form-control" value="{{ form.city.value|default:'' }}">
+                    </div>
+
+                    <div class="col-6">
+                        <label class="form-label small text-secondary">State</label>
+                        <input type="text" name="state" class="form-control" value="{{ form.state.value|default:'' }}">
+                    </div>
+
+                    <div class="col-4">
+                        <label class="form-label small text-secondary">Pincode</label>
+                        <input type="text" name="pincode" class="form-control"
+                            value="{{ form.pincode.value|default:'' }}">
+                    </div>
+
+                    <div class="col-4">
+                        <label class="form-label small text-secondary">Country</label>
+                        <input type="text" name="country" class="form-control"
+                            value="{{ form.country.value|default:'India' }}">
+                    </div>
+
+                    <div class="col-4">
+                        <label class="form-label small text-secondary">Type</label>
+                        {{ form.address_type }} {# widget renders with class="form-select" from forms.py #}
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            {{ form.is_default }} {# widget renders with class="form-check-input" #}
+                            <label class="form-check-label text-secondary" for="{{ form.is_default.id_for_label }}">
+                                Set as default address
+                            </label>
+                        </div>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="col-12">
+                        <div class="alert alert-danger py-2">
+                            {% for field in form %}
+                            {% for error in field.errors %}
+                            <div>{{ field.label }}: {{ error }}</div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-success">{{ action }} Address</button>
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

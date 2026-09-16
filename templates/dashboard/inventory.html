@@ -1,0 +1,109 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}Inventory Management{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <div class="stat-label">Out of Stock</div>
+            <div class="stat-value text-danger">{{ out_count }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <div class="stat-label">Low Stock</div>
+            <div class="stat-value text-warning">{{ low_count }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card">
+            <div class="stat-label">In Stock</div>
+            <div class="stat-value text-success">{{ in_count }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+    <form method="get" class="d-flex gap-2" style="max-width:340px">
+        <div class="input-group input-group-sm">
+            <input type="text" name="q" value="{{ q }}" placeholder="Search products…" class="form-control"
+                style="background:#161b22;border-color:#30363d;color:#e6edf3">
+            <button type="submit" class="btn btn-outline-secondary">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if q %}
+            <a href="{% url 'dashboard:inventory' %}" class="btn btn-outline-danger">✕</a>
+            {% endif %}
+        </div>
+    </form>
+    <a href="{% url 'dashboard:export-inventory-excel' %}" class="btn btn-sm btn-success ms-auto">
+        <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+    </a>
+</div>
+
+{% if out_of_stock %}
+<div class="chart-card mb-3">
+    <div class="chart-hdr text-danger">
+        <i class="bi bi-x-circle me-1"></i>Out of Stock ({{ out_count }})
+    </div>
+    {% include 'dashboard/_inventory_table.html' with items=out_of_stock %}
+</div>
+{% endif %}
+
+{% if low_stock %}
+<div class="chart-card mb-3">
+    <div class="chart-hdr text-warning">
+        <i class="bi bi-exclamation-triangle me-1"></i>Low Stock ({{ low_count }})
+    </div>
+    {% include 'dashboard/_inventory_table.html' with items=low_stock %}
+</div>
+{% endif %}
+
+<div class="chart-card">
+    <div class="chart-hdr text-success">
+        <i class="bi bi-check-circle me-1"></i>In Stock ({{ in_count }})
+    </div>
+    {% include 'dashboard/_inventory_table.html' with items=in_stock %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateStock(invId, btn) {
+        const row = btn.closest('tr');
+        const qty = parseInt(row.querySelector('.qty-input').value);
+        if (isNaN(qty) || qty < 0) { showToast('Invalid quantity.', 'danger'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        const fd = new FormData();
+        fd.append('quantity', qty);
+        fd.append('csrfmiddlewaretoken', CSRF);
+
+        fetch(`/dashboard/inventory/${invId}/update/`, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const badge = row.querySelector('.stock-badge');
+                    badge.textContent = d.label;
+                    badge.style.color = d.color;
+                    showToast('Stock updated.', 'success');
+                } else {
+                    showToast(d.message || 'Error.', 'danger');
+                }
+                btn.disabled = false;
+                btn.innerHTML = 'Update';
+            })
+            .catch(() => {
+                showToast('Something went wrong.', 'danger');
+                btn.disabled = false;
+                btn.innerHTML = 'Update';
+            });
+    }
+</script>
+{% endblock %}

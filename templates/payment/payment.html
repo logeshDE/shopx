@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Payment — ShopX{% endblock %}
+
+{% block extra_head %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 justify-content-center">
+
+    {# ── Left: payment methods ─────────────────────────────── #}
+    <div class="col-lg-7">
+        <h5 class="fw-medium mb-4" style="color:#e6edf3">Choose Payment Method</h5>
+
+        {# ── Tabs ──────────────────────────────────────────────── #}
+        <div class="d-flex gap-2 mb-4 flex-wrap" id="method-tabs">
+            {% if razorpay_key %}
+            <button class="method-tab btn btn-success" data-method="razorpay">
+                <i class="bi bi-credit-card me-2"></i>Cards / UPI / NetBanking
+            </button>
+            {% endif %}
+            <button class="method-tab btn btn-outline-secondary" data-method="cod">
+                <i class="bi bi-cash-stack me-2"></i>Cash on Delivery
+            </button>
+        </div>
+
+        {# ── Razorpay panel ─────────────────────────────────────── #}
+        {% if razorpay_key %}
+        <div class="method-panel card p-4" id="panel-razorpay" style="background:#161b22;border:1px solid #30363d">
+            <div class="text-center py-3">
+                <i class="bi bi-shield-lock text-success mb-2" style="font-size:2.5rem"></i>
+                <h6 style="color:#e6edf3" class="mb-1">Pay securely with Razorpay</h6>
+                <p class="text-secondary mb-3" style="font-size:.85rem">
+                    Supports UPI, credit/debit cards, net banking, and wallets.
+                </p>
+                <div class="d-flex justify-content-center gap-2 mb-4 flex-wrap">
+                    <span class="badge rounded-pill py-2 px-3" style="background:#0d1117;border:1px solid #30363d;color:#8b949e">
+                        <i class="bi bi-credit-card me-1"></i> Cards
+                    </span>
+                    <span class="badge rounded-pill py-2 px-3" style="background:#0d1117;border:1px solid #30363d;color:#8b949e">
+                        <i class="bi bi-phone me-1"></i> UPI
+                    </span>
+                    <span class="badge rounded-pill py-2 px-3" style="background:#0d1117;border:1px solid #30363d;color:#8b949e">
+                        <i class="bi bi-bank me-1"></i> Net Banking
+                    </span>
+                    <span class="badge rounded-pill py-2 px-3" style="background:#0d1117;border:1px solid #30363d;color:#8b949e">
+                        <i class="bi bi-wallet2 me-1"></i> Wallets
+                    </span>
+                </div>
+                <button class="btn btn-success px-5 py-2" onclick="payWithRazorpay()" id="rzp-btn">
+                    Pay ₹{{ totals.total|floatformat:0 }} with Razorpay
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+
+        {# ── COD panel ──────────────────────────────────────────── #}
+        <div class="method-panel card p-4 d-none" id="panel-cod" style="background:#161b22;border:1px solid #30363d">
+            <div class="text-center py-3">
+                <i class="bi bi-cash-coin text-warning mb-2" style="font-size:2.5rem"></i>
+                <h6 style="color:#e6edf3" class="mb-1">Cash on Delivery</h6>
+                <p class="text-secondary mb-4" style="font-size:.85rem">
+                    Pay ₹{{ totals.total|floatformat:0 }} in cash when your order arrives.
+                    Available for orders up to ₹10,000.
+                </p>
+                <form method="post" action="{% url 'payment:cod' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning px-5 py-2" style="color:#000;font-weight:500">
+                        <i class="bi bi-bag-check me-2"></i>Place COD Order
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {# Global error / spinner #}
+        <div id="pay-error" class="alert alert-danger mt-3 d-none"></div>
+        <div id="pay-spinner" class="text-center mt-3 d-none">
+            <div class="spinner-border text-success" role="status"></div>
+            <p class="text-secondary mt-2" style="font-size:.85rem">Processing payment…</p>
+        </div>
+    </div>
+
+    {# ── Right: order summary ──────────────────────────────────── #}
+    <div class="col-lg-4">
+        <div class="card p-3" style="background:#161b22;border:1px solid #30363d;position:sticky;top:16px">
+            <h6 class="fw-medium mb-3" style="color:#e6edf3">Order Summary</h6>
+
+            {% for item in cart.items.all %}
+            <div class="d-flex gap-2 align-items-center mb-2">
+                {% if item.product.primary_image %}
+                <img src="{{ item.product.primary_image.image.url }}" style="width:40px;height:40px;object-fit:cover;
+                        border-radius:4px;background:#0d1117;flex-shrink:0">
+                {% else %}
+                <div style="width:40px;height:40px;border-radius:4px;background:#0d1117;flex-shrink:0"></div>
+                {% endif %}
+                <div class="flex-grow-1 min-width-0">
+                    <div style="font-size:.78rem;color:#e6edf3;white-space:nowrap;
+                        overflow:hidden;text-overflow:ellipsis">
+                        {{ item.product.name }}
+                    </div>
+                    <div style="font-size:.72rem;color:#8b949e">× {{ item.quantity }}</div>
+                </div>
+                <div style="font-size:.82rem;color:#e6edf3;white-space:nowrap">
+                    ₹{{ item.total_price|floatformat:0 }}
+                </div>
+            </div>
+            {% endfor %}
+
+            <hr style="border-color:#30363d;margin:12px 0">
+
+            <div class="d-flex flex-column gap-1" style="font-size:.82rem">
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Subtotal</span>
+                    <span style="color:#e6edf3">₹{{ totals.subtotal|floatformat:0 }}</span>
+                </div>
+                {% if totals.coupon_discount %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Coupon discount</span>
+                    <span class="text-success">−₹{{ totals.coupon_discount|floatformat:0 }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Shipping</span>
+                    <span {% if totals.free_shipping %}class="text-success" {% else %}style="color:#e6edf3" {% endif %}>
+                        {% if totals.free_shipping %}Free{% else %}₹{{ totals.shipping_cost|floatformat:0 }}{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Tax (GST 18%)</span>
+                    <span style="color:#e6edf3">₹{{ totals.tax|floatformat:0 }}</span>
+                </div>
+                <hr style="border-color:#30363d;margin:6px 0">
+                <div class="d-flex justify-content-between fw-bold">
+                    <span style="color:#e6edf3">Total</span>
+                    <span class="text-success fs-6">₹{{ totals.total|floatformat:0 }}</span>
+                </div>
+            </div>
+
+            <div class="mt-3 text-center">
+                <a href="{% url 'checkout:review' %}" style="font-size:.78rem;color:#8b949e;text-decoration:none">
+                    ← Edit order
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+    // ── Tab switching ─────────────────────────────────────────────
+    document.querySelectorAll('.method-tab').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.method-tab').forEach(b => {
+                b.className = 'method-tab btn btn-outline-secondary';
+            });
+            this.className = 'method-tab btn btn-success';
+
+            document.querySelectorAll('.method-panel').forEach(p => p.classList.add('d-none'));
+            const target = document.getElementById('panel-' + this.dataset.method);
+            if (target) target.classList.remove('d-none');
+        });
+    });
+
+    function showError(msg) {
+        const el = document.getElementById('pay-error');
+        el.textContent = msg;
+        el.classList.remove('d-none');
+    }
+    function hideError() { document.getElementById('pay-error').classList.add('d-none'); }
+    function showSpinner() { document.getElementById('pay-spinner').classList.remove('d-none'); }
+    function hideSpinner() { document.getElementById('pay-spinner').classList.add('d-none'); }
+
+    function postJSON(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify(body),
+        }).then(r => r.json());
+    }
+
+    // ── Razorpay ──────────────────────────────────────────────────
+    function payWithRazorpay() {
+        hideError();
+        showSpinner();
+        document.getElementById('rzp-btn').disabled = true;
+
+        postJSON('{% url "payment:razorpay-create" %}', {})
+            .then(d => {
+                hideSpinner();
+                if (!d.success) { showError(d.message); return; }
+
+                const options = {
+                    key: d.key,
+                    amount: d.amount,
+                    currency: d.currency,
+                    name: d.name,
+                    description: d.description,
+                    order_id: d.order_id,
+                    prefill: d.prefill,
+                    theme: { color: '#238636' },
+                    handler: function (response) {
+                        showSpinner();
+                        postJSON('{% url "payment:razorpay-verify" %}', {
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                        }).then(v => {
+                            hideSpinner();
+                            if (v.success) {
+                                window.location.href = v.redirect_url;
+                            } else {
+                                showError(v.message);
+                                document.getElementById('rzp-btn').disabled = false;
+                            }
+                        });
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            hideSpinner();
+                            document.getElementById('rzp-btn').disabled = false;
+                        }
+                    }
+                };
+                new Razorpay(options).open();
+            })
+            .catch(() => {
+                hideSpinner();
+                showError('Could not connect. Please try again.');
+                document.getElementById('rzp-btn').disabled = false;
+            });
+    }
+</script>
+{% endblock %}

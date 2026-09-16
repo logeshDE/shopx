@@ -1,0 +1,143 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block title %}Product Analytics{% endblock %}
+{% block page_title %}Product Analytics{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+  {# ── Top Selling Products ───────────────────────────────────────── #}
+  <div class="col-lg-6">
+    <div class="chart-card h-100">
+      <div class="chart-hdr">
+        <i class="bi bi-graph-up-arrow me-1 text-success"></i>Top Selling Products
+      </div>
+      <div class="table-responsive">
+        <table class="dtable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Product</th>
+              <th>Qty Sold</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in top_selling %}
+            <tr>
+              <td class="text-secondary">{{ forloop.counter }}</td>
+              <td>
+                <a href="/products/{{ p.product__slug }}/"
+                   class="text-decoration-none"
+                   style="color:#e6edf3;font-size:.825rem">
+                  {{ p.product_name|truncatechars:36 }}
+                </a>
+              </td>
+              <td class="fw-medium">{{ p.total_qty|intcomma }}</td>
+              <td class="text-success">₹{{ p.total_revenue|floatformat:0|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-secondary py-3">
+                No sales data yet
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# ── Category Distribution Chart ──────────────────────────────── #}
+  <div class="col-lg-6">
+    <div class="chart-card h-100">
+      <div class="chart-hdr">
+        <i class="bi bi-pie-chart me-1 text-info"></i>Products by Category
+      </div>
+      <canvas id="cat-chart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+{# ── Most Reviewed Products ──────────────────────────────────────── #}
+<div class="chart-card">
+  <div class="chart-hdr">
+    <i class="bi bi-star-half me-1 text-warning"></i>Most Reviewed Products
+  </div>
+  <div class="table-responsive">
+    <table class="dtable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product</th>
+          <th>Reviews</th>
+          <th>Avg Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in most_reviewed %}
+        <tr>
+          <td class="text-secondary">{{ forloop.counter }}</td>
+          <td>
+            <a href="/products/{{ p.slug }}/"
+               class="text-decoration-none"
+               style="color:#e6edf3;font-size:.825rem">
+              {{ p.name|truncatechars:40 }}
+            </a>
+          </td>
+          <td>{{ p.review_count }}</td>
+          <td>
+            {% with rating=p.avg_rating|floatformat:1 %}
+            <span class="text-warning">
+              {% for i in "12345" %}
+                {% if forloop.counter <= p.avg_rating|floatformat:0|add:"0" %}★{% else %}☆{% endif %}
+              {% endfor %}
+            </span>
+            <small class="text-secondary ms-1">{{ rating }}</small>
+            {% endwith %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-secondary py-3">No reviews yet</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  Chart.defaults.color = '#8b949e';
+  new Chart(document.getElementById('cat-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ category_labels|safe }},
+      datasets: [{
+        data: {{ category_counts|safe }},
+        backgroundColor: [
+          '#388bfd','#3fb950','#d29922','#f85149',
+          '#a371f7','#39d353','#79c0ff','#ffa657',
+        ],
+        borderColor: '#0d1117',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 14 } },
+      },
+      cutout: '62%',
+    }
+  });
+</script>
+{% endblock %}

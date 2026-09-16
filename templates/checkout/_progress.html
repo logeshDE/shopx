@@ -1,0 +1,32 @@
+{% comment %}Expects current_step (1, 2, or 3) in context{% endcomment %}
+<div class="d-flex align-items-center mb-4">
+    {% for step_num, step_name in steps %}
+    <div class="d-flex align-items-center {% if not forloop.last %}flex-grow-1{% endif %}">
+
+        <div class="d-flex flex-column align-items-center" style="min-width:56px">
+            <div style="width:30px;height:30px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:12px;font-weight:500;
+                    background:{% if step_num < current_step %}#238636{% elif step_num == current_step %}#1f6feb{% else %}#21262d{% endif %};
+                    color:#fff;
+                    border:{% if step_num == current_step %}2px solid #388bfd{% else %}none{% endif %}">
+                {% if step_num < current_step %} <i class="bi bi-check"></i>
+                    {% else %}
+                    {{ step_num }}
+                    {% endif %}
+            </div>
+            <small style="font-size:10px;margin-top:4px;
+                      color:{% if step_num <= current_step %}#e6edf3{% else %}#8b949e{% endif %}">
+                {{ step_name }}
+            </small>
+        </div>
+
+        {% if not forloop.last %}
+        <div style="flex:1;height:1.5px;margin-bottom:20px;margin-left:4px;margin-right:4px;
+                    background:{% if step_num < current_step %}#238636{% else %}#30363d{% endif %}">
+        </div>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+</div>

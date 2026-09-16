@@ -1,0 +1,22 @@
+{% if status == 'pending' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#3d2b00;color:#d29922">Pending</span>
+{% elif status == 'processing' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#031d2e;color:#388bfd">Processing</span>
+{% elif status == 'shipped' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#1a2f5c;color:#79c0ff">Shipped</span>
+{% elif status == 'delivered' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#0f2d14;color:#3fb950">Delivered</span>
+{% elif status == 'cancelled' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#2d0f0f;color:#f85149">Cancelled</span>
+{% elif status == 'returned' %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#2d1a2d;color:#d2a8ff">Returned</span>
+{% else %}
+<span style="font-size:.72rem;font-weight:500;padding:2px 8px;border-radius:100px;
+               background:#21262d;color:#8b949e">{{ status|title }}</span>
+{% endif %}

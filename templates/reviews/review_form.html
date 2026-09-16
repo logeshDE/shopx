@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} Review — {{ product.name }} — ShopX{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            {% if product.primary_image %}
+            <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}"
+                style="width:60px;height:60px;object-fit:cover;border-radius:8px;background:#0d1117">
+            {% endif %}
+            <div>
+                <small class="text-secondary">Reviewing</small>
+                <div class="fw-medium" style="color:#e6edf3">{{ product.name|truncatechars:60 }}</div>
+            </div>
+        </div>
+
+        <div class="card p-4" style="background:#161b22;border:1px solid #30363d">
+            <h5 class="fw-medium mb-4" style="color:#e6edf3">{{ action }} Your Review</h5>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                {# ── Star selector ─────────────────────────────────── #}
+                <div class="mb-4">
+                    <label class="form-label small text-secondary">Rating <span class="text-danger">*</span></label>
+                    <div id="star-selector" class="d-flex gap-2 align-items-center">
+                        {% for i in "12345"|make_list %}
+                        <i class="bi bi-star-fill star-btn" data-val="{{ i }}" title="{{ i }} star{{ i|pluralize }}"
+                            style="font-size:2rem;color:#30363d;cursor:pointer;transition:color .1s"></i>
+                        {% endfor %}
+                        <span id="rating-label" class="text-secondary ms-2" style="font-size:.85rem"></span>
+                    </div>
+                    <input type="hidden" name="rating" id="rating-input" value="{{ form.rating.value|default:'' }}"
+                        required>
+                    {% for error in form.rating.errors %}
+                    <div class="text-danger mt-1" style="font-size:.8rem">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                {# ── Title ─────────────────────────────────────────── #}
+                <div class="mb-3">
+                    <label class="form-label small text-secondary">
+                        Title <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" name="title" class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                        style="background:#0d1117;border-color:#30363d;color:#e6edf3"
+                        placeholder="Summarise your experience" value="{{ form.title.value|default:'' }}"
+                        maxlength="200">
+                    {% for error in form.title.errors %}
+                    <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                {# ── Body ──────────────────────────────────────────── #}
+                <div class="mb-3">
+                    <label class="form-label small text-secondary">
+                        Review <span class="text-danger">*</span>
+                    </label>
+                    <textarea name="body" rows="5" class="form-control {% if form.body.errors %}is-invalid{% endif %}"
+                        style="background:#0d1117;border-color:#30363d;color:#e6edf3"
+                        placeholder="Share what you liked, what could be better, and any tips…">{{ form.body.value|default:'' }}</textarea>
+                    {% for error in form.body.errors %}
+                    <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                {# ── Image upload ──────────────────────────────────── #}
+                <div class="mb-4">
+                    <label class="form-label small text-secondary">
+                        Add Photos <span class="text-secondary fw-normal">(optional)</span>
+                    </label>
+
+                    {# Show existing images when editing #}
+                    {% if existing_images %}
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        {% for img in existing_images %}
+                        <div class="position-relative">
+                            <img src="{{ img.image.url }}" alt="Review image" style="width:72px;height:72px;object-fit:cover;
+                              border-radius:6px;border:1px solid #30363d">
+                            <form method="post" action="{% url 'reviews:delete-image' img.pk %}"
+                                class="position-absolute top-0 end-0">
+                                {% csrf_token %}
+                                <button type="submit" style="background:rgba(0,0,0,.7);border:none;border-radius:50%;
+                                   width:20px;height:20px;color:#f85149;font-size:12px;
+                                   display:flex;align-items:center;justify-content:center;
+                                   cursor:pointer;padding:0;line-height:1" title="Remove image"
+                                    onclick="return confirm('Remove this image?')">×</button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <input type="file" name="images" id="image-input" class="form-control form-control-sm"
+                        style="background:#0d1117;border-color:#30363d;color:#e6edf3" accept="image/*" multiple>
+                    <div id="image-preview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    <small class="text-secondary">Up to 5 images. Max 5MB each.</small>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        {% if action == 'Edit' %}Update Review{% else %}Submit Review{% endif %}
+                    </button>
+                    <a href="{{ product.get_absolute_url }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+
+    function selectStar(val) {
+        document.getElementById('rating-input').value = val;
+        document.getElementById('rating-label').textContent = LABELS[val] || '';
+        document.querySelectorAll('.star-btn').forEach((s, i) => {
+            s.style.color = (i < val) ? '#e3b341' : '#30363d';
+        });
+    }
+
+    document.querySelectorAll('.star-btn').forEach((star, i) => {
+        star.addEventListener('click', () => selectStar(i + 1));
+        star.addEventListener('mouseenter', () => {
+            document.querySelectorAll('.star-btn').forEach((s, j) => {
+                s.style.color = j <= i ? '#e3b341' : '#30363d';
+            });
+        });
+        star.addEventListener('mouseleave', () => {
+            const v = parseInt(document.getElementById('rating-input').value) || 0;
+            document.querySelectorAll('.star-btn').forEach((s, j) => {
+                s.style.color = j < v ? '#e3b341' : '#30363d';
+            });
+        });
+    });
+
+    // Init from existing value (edit mode)
+    const existing = parseInt(document.getElementById('rating-input').value);
+    if (existing) selectStar(existing);
+
+    // Image preview
+    document.getElementById('image-input').addEventListener('change', function () {
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = '';
+        Array.from(this.files).slice(0, 5).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #30363d';
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+</script>
+{% endblock %}

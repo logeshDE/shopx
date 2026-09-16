@@ -1,0 +1,206 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block title %}Sales Analytics{% endblock %}
+{% block page_title %}Sales Analytics{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+{# Summary KPIs #}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value">₹{{ summary.total_revenue|default:0|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Paid Orders</div>
+            <div class="stat-value">{{ summary.total_orders|default:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg Order Value</div>
+            <div class="stat-value">₹{{ summary.avg_order|default:0|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">Discounts Given</div>
+            <div class="stat-value text-warning">
+                ₹{{ summary.total_discount|default:0|floatformat:0|intcomma }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Charts #}
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-hdr">Monthly Revenue — Last 12 Months</div>
+            <canvas id="monthly-revenue" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-hdr">Revenue by Category</div>
+            <canvas id="category-chart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-hdr">Monthly Orders — Last 12 Months</div>
+            <canvas id="monthly-orders" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-hdr">Payment Methods</div>
+            {% for pm in payment_methods %}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <div style="color:#e6edf3;font-size:.875rem;text-transform:capitalize">
+                        {{ pm.payment__gateway|default:'Cash on Delivery' }}
+                    </div>
+                    <small class="text-secondary">{{ pm.count }} order{{ pm.count|pluralize }}</small>
+                </div>
+                <div class="text-success fw-medium">₹{{ pm.revenue|floatformat:0|intcomma }}</div>
+            </div>
+            {% empty %}
+            <p class="text-secondary text-center py-3" style="font-size:.85rem">
+                No payment data yet
+            </p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# Export #}
+<div class="chart-card">
+    <div class="chart-hdr mb-3">Export Sales Report</div>
+    <div class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small text-secondary">From</label>
+            <input type="date" id="exp-from" class="form-control form-control-sm"
+                style="background:#0d1117;border-color:#30363d;color:#e6edf3" value="{% now 'Y-m-01' %}">
+        </div>
+        <div class="col-auto">
+            <label class="form-label small text-secondary">To</label>
+            <input type="date" id="exp-to" class="form-control form-control-sm"
+                style="background:#0d1117;border-color:#30363d;color:#e6edf3" value="{% now 'Y-m-d' %}">
+        </div>
+        <div class="col-auto">
+            <button onclick="doExport('pdf')" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-file-pdf me-1"></i>PDF
+            </button>
+        </div>
+        <div class="col-auto">
+            <button onclick="doExport('excel')" class="btn btn-sm btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.font.family = 'system-ui, sans-serif';
+    const GRID = '#21262d';
+    const months = {{ monthly_labels| safe }};
+
+    new Chart(document.getElementById('monthly-revenue'), {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Revenue',
+                data: {{ monthly_revenue| safe }
+    },
+        backgroundColor: 'rgba(63,185,80,.55)',
+        borderColor: '#3fb950', borderWidth: 1, borderRadius: 4,
+    }]
+  },
+        options: {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: GRID } },
+            y: {
+                grid: { color: GRID }, beginAtZero: true,
+                ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+            },
+        }
+    }
+});
+
+    new Chart(document.getElementById('monthly-orders'), {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Orders',
+                data: {{ monthly_orders| safe }
+    },
+        borderColor: '#388bfd', backgroundColor: 'rgba(56,139,253,.07)',
+        fill: true, tension: .3, pointRadius: 4, pointBackgroundColor: '#388bfd',
+    }]
+  },
+        options: {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: GRID } },
+            y: { grid: { color: GRID }, beginAtZero: true, ticks: { precision: 0 } },
+        }
+    }
+});
+
+    const PALETTE = [
+        'rgba(63,185,80,.7)', 'rgba(56,139,253,.7)', 'rgba(210,169,34,.7)',
+        'rgba(248,81,73,.7)', 'rgba(121,192,255,.7)', 'rgba(210,168,255,.7)',
+        'rgba(248,129,34,.7)', 'rgba(163,113,247,.7)',
+    ];
+    new Chart(document.getElementById('category-chart'), {
+        type: 'bar',
+        data: {
+            labels: {{ category_labels| safe }},
+        datasets: [{
+            data: {{ category_revenue| safe }},
+        backgroundColor: PALETTE, borderRadius: 4,
+    }]
+  },
+        options: {
+        indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                grid: { color: GRID },
+                ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+            },
+            y: { grid: { color: GRID } },
+        }
+    }
+});
+
+    function doExport(fmt) {
+        const from = document.getElementById('exp-from').value;
+        const to = document.getElementById('exp-to').value;
+        if (!from || !to) { showToast('Select a date range.', 'danger'); return; }
+        window.open(
+            (fmt === 'pdf'
+                ? '{% url "dashboard:export-sales-pdf" %}'
+                : '{% url "dashboard:export-sales-excel" %}')
+            + `?from=${from}&to=${to}`, '_blank'
+        );
+    }
+</script>
+{% endblock %}

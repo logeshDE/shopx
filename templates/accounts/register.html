@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Create Account — ShopX{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-4 mt-3">
+            <h4 class="mb-4 text-center">Create Account</h4>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-6">
+                        <input type="text" name="first_name"
+                            class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                            placeholder="First Name" value="{{ form.first_name.value|default:'' }}">
+                        {% for e in form.first_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="last_name"
+                            class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                            placeholder="Last Name" value="{{ form.last_name.value|default:'' }}">
+                        {% for e in form.last_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                        <input type="email" name="email"
+                            class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                            placeholder="Email Address" value="{{ form.email.value|default:'' }}">
+                        {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                        <input type="password" name="password1"
+                            class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                            placeholder="Password">
+                        {% for e in form.password1.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                        <input type="password" name="password2"
+                            class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                            placeholder="Confirm Password">
+                        {% for e in form.password2.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
+                    {% if form.non_field_errors %}
+                    <div class="col-12">
+                        <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success w-100">Create Account</button>
+                    </div>
+                </div>
+            </form>
+            <p class="text-center text-secondary mt-3 mb-0">
+                Already have an account? <a href="{% url 'accounts:login' %}" class="text-success">Log in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

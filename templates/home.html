@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}ShopX — Best Deals Online{% endblock %}
+
+{% block content %}
+
+{# ── Hero ──────────────────────────────────────────────────── #}
+<div class="rounded-3 mb-5 p-5 text-center" style="background:linear-gradient(135deg,#0f2027,#203a43,#2c5364)">
+    <h1 class="display-5 fw-bold mb-2">Shop Smart. Save More.</h1>
+    <p class="text-secondary mb-4">Millions of products. Unbeatable prices.</p>
+    <form action="{% url 'products:list' %}" method="get" class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control form-control-lg" placeholder="Search products…"
+                    style="background:#0d1117;border-color:#30363d;color:#e6edf3">
+                <button class="btn btn-success px-4" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ── Shop by Category ───────────────────────────────────────── #}
+{% if categories %}
+<section class="mb-5">
+    <h5 class="mb-3 fw-medium" style="color:#e6edf3">Shop by Category</h5>
+    <div class="row g-3">
+        {% for cat in categories %}
+        <div class="col-6 col-md-3 col-lg-2">
+            <a href="{{ cat.get_absolute_url }}" class="text-decoration-none">
+                <div class="card text-center p-3 h-100 border-0"
+                    style="background:#161b22;transition:border-color .2s;border:1px solid #30363d !important"
+                    onmouseenter="this.style.borderColor='#238636'" onmouseleave="this.style.borderColor='#30363d'">
+                    {% if cat.image %}
+                    <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="rounded-circle mx-auto mb-2"
+                        style="width:56px;height:56px;object-fit:cover">
+                    {% else %}
+                    <div class="rounded-circle bg-success d-flex align-items-center
+                          justify-content-center mx-auto mb-2" style="width:56px;height:56px;font-size:1.3rem">
+                        {{ cat.name.0|upper }}
+                    </div>
+                    {% endif %}
+                    <small class="fw-medium" style="color:#e6edf3">{{ cat.name }}</small>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# ── Featured Products ──────────────────────────────────────── #}
+{% if featured %}
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-medium" style="color:#e6edf3">
+            <i class="bi bi-lightning-fill text-warning me-2"></i>Trending Now
+        </h5>
+        <a href="{% url 'products:list' %}" class="btn btn-sm btn-outline-success">View all</a>
+    </div>
+    <div class="row g-3">
+        {% for product in featured %}
+        <div class="col-6 col-md-4 col-lg-3">
+            {% include 'products/_card.html' with product=product %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# ── Today's Deals ─────────────────────────────────────────── #}
+{% if deals %}
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-medium" style="color:#e6edf3">
+            <i class="bi bi-tag-fill text-danger me-2"></i>Today's Deals
+        </h5>
+        <a href="{% url 'products:list' %}?sort=price_asc" class="btn btn-sm btn-outline-danger">See all deals</a>
+    </div>
+    <div class="row g-3">
+        {% for product in deals %}
+        <div class="col-6 col-md-4 col-lg-3">
+            {% include 'products/_card.html' with product=product %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# ── New Arrivals ──────────────────────────────────────────── #}
+{% if new_arrivals %}
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-medium" style="color:#e6edf3">
+            <i class="bi bi-stars text-info me-2"></i>New Arrivals
+        </h5>
+        <a href="{% url 'products:list' %}?sort=newest" class="btn btn-sm btn-outline-info">View all</a>
+    </div>
+    <div class="row g-3">
+        {% for product in new_arrivals %}
+        <div class="col-6 col-md-4 col-lg-3">
+            {% include 'products/_card.html' with product=product %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

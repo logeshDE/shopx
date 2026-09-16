@@ -1,0 +1,66 @@
+{% load humanize %}
+<div class="table-responsive">
+    <table class="dtable">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Brand</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Threshold</th>
+                <th>Status</th>
+                <th style="width:140px">Update</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in items %}
+            <tr>
+                <td>
+                    <a href="/products/{{ inv.product.slug }}/" class="text-decoration-none"
+                        style="color:#e6edf3;font-size:.825rem">
+                        {{ inv.product.name|truncatechars:40 }}
+                    </a>
+                </td>
+                <td class="text-secondary">{{ inv.product.category.name|default:"—" }}</td>
+                <td class="text-secondary">{{ inv.product.brand.name|default:"—" }}</td>
+                <td class="text-success">₹{{ inv.product.price|floatformat:0|intcomma }}</td>
+                <td>
+                    <span class="fw-medium
+              {% if inv.quantity == 0 %}text-danger
+              {% elif inv.quantity <= inv.low_stock_threshold %}text-warning
+              {% else %}text-success{% endif %}">
+                        {{ inv.quantity }}
+                    </span>
+                </td>
+                <td class="text-secondary">{{ inv.low_stock_threshold }}</td>
+                <td>
+                    <span class="stock-badge" style="font-size:.78rem;font-weight:500;
+              color:{% if inv.quantity == 0 %}#f85149
+                    {% elif inv.quantity <= inv.low_stock_threshold %}#d29922
+                    {% else %}#3fb950{% endif %}">
+                        {% if inv.quantity == 0 %}Out of Stock
+                        {% elif inv.quantity <= inv.low_stock_threshold %}Low Stock ({{ inv.quantity }}) {% else %}In
+                            Stock ({{ inv.quantity }}){% endif %} </span>
+                </td>
+                <td>
+                    <div class="d-flex gap-1 align-items-center">
+                        <input type="number" class="qty-input form-control form-control-sm" value="{{ inv.quantity }}"
+                            min="0" style="width:58px;background:#0d1117;
+                            border-color:#30363d;color:#e6edf3;padding:3px 6px">
+                        <button class="btn btn-outline-success btn-sm"
+                            style="font-size:.7rem;padding:2px 8px;white-space:nowrap"
+                            onclick="updateStock({{ inv.pk }}, this)">
+                            Update
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-secondary py-3">No items here</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

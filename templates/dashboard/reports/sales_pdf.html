@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            color: #111;
+            margin: 0;
+        }
+
+        .wrap {
+            padding: 28px;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: bold;
+            color: #238636;
+        }
+
+        .sub {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .summary {
+            display: flex;
+            gap: 28px;
+            margin-bottom: 20px;
+        }
+
+        .sum-item .lbl {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #999;
+        }
+
+        .sum-item .val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #238636;
+            margin-top: 2px;
+        }
+
+        h3 {
+            font-size: 12px;
+            margin: 0 0 10px;
+            color: #333;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f4faf4;
+            padding: 6px 7px;
+            text-align: left;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #666;
+            border-bottom: 2px solid #c8e6c8;
+        }
+
+        td {
+            padding: 6px 7px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .alt {
+            background: #f9fdf9;
+        }
+
+        .tot {
+            font-weight: bold;
+            border-top: 2px solid #238636;
+            background: #f0fdf0;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 9px;
+            color: #bbb;
+            margin-top: 24px;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+
+        <div class="header">
+            <div class="brand">ShopX</div>
+            <div class="sub">
+                Sales Report · {{ start|date:"d M Y" }} – {{ end|date:"d M Y" }}
+                &nbsp;·&nbsp; Generated {% now "d M Y H:i" %}
+            </div>
+        </div>
+
+        <div class="summary">
+            <div class="sum-item">
+                <div class="lbl">Revenue</div>
+                <div class="val">₹{{ summary.total_revenue|default:0|floatformat:2 }}</div>
+            </div>
+            <div class="sum-item">
+                <div class="lbl">Orders</div>
+                <div class="val">{{ summary.total_orders|default:0 }}</div>
+            </div>
+            <div class="sum-item">
+                <div class="lbl">Avg Order</div>
+                <div class="val">₹{{ summary.avg_order|default:0|floatformat:2 }}</div>
+            </div>
+        </div>
+
+        <h3>Order Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Subtotal</th>
+                    <th>Discount</th>
+                    <th>Shipping</th>
+                    <th>Tax</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr {% if forloop.counter|divisibleby:2 %}class="alt" {% endif %}>
+                    <td style="font-family:monospace;font-size:9px">
+                        {{ order.order_number }}
+                    </td>
+                    <td>{{ order.created_at|date:"d M Y" }}</td>
+                    <td>{{ order.user.email|truncatechars:20 }}</td>
+                    <td style="text-align:center">{{ order.items.count }}</td>
+                    <td>₹{{ order.subtotal|floatformat:2 }}</td>
+                    <td style="color:#c0392b">
+                        {% if order.discount_amount %}−₹{{ order.discount_amount|floatformat:2 }}{% else %}—{% endif %}
+                    </td>
+                    <td>₹{{ order.shipping_cost|floatformat:2 }}</td>
+                    <td>₹{{ order.tax_amount|floatformat:2 }}</td>
+                    <td style="font-weight:bold;color:#238636">₹{{ order.total|floatformat:2 }}</td>
+                    <td style="text-transform:capitalize">{{ order.status }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="tot">
+                    <td colspan="4" style="text-align:right">TOTAL</td>
+                    <td>₹{{ summary.total_revenue|default:0|floatformat:2 }}</td>
+                    <td>₹{{ summary.total_discount|default:0|floatformat:2 }}</td>
+                    <td colspan="2">—</td>
+                    <td style="color:#238636">₹{{ summary.total_revenue|default:0|floatformat:2 }}</td>
+                    <td>—</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="footer">
+            ShopX Admin Dashboard — Confidential. Do not distribute.
+        </div>
+
+    </div>
+</body>
+
+</html>

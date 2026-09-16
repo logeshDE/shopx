@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — ShopX{% endblock %}
+{% block content %}
+<div class="row g-4">
+
+    <!-- Left: profile form -->
+    <div class="col-md-4">
+        <div class="card p-4">
+            <div class="text-center mb-4">
+                {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" class="rounded-circle mb-2" width="80" height="80"
+                    style="object-fit:cover">
+                {% else %}
+                <div class="rounded-circle bg-success d-flex align-items-center justify-content-center mx-auto mb-2"
+                    style="width:80px;height:80px;font-size:1.8rem;color:#fff">
+                    {{ user.first_name.0|upper|default:user.email.0|upper }}
+                </div>
+                {% endif %}
+                <h6 class="mb-0">{{ user.profile.full_name }}</h6>
+                <small class="text-secondary">{{ user.email }}</small>
+            </div>
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                <div class="d-flex flex-column gap-3">
+                    <div class="row g-2">
+                        <div class="col">
+                            <label class="form-label small text-secondary">First Name</label>
+                            <input type="text" name="first_name" class="form-control form-control-sm"
+                                value="{{ form.first_name.value|default:user.first_name }}">
+                        </div>
+                        <div class="col">
+                            <label class="form-label small text-secondary">Last Name</label>
+                            <input type="text" name="last_name" class="form-control form-control-sm"
+                                value="{{ form.last_name.value|default:user.last_name }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label small text-secondary">Phone</label>
+                        <input type="text" name="phone" class="form-control form-control-sm"
+                            value="{{ form.phone.value|default:user.phone }}">
+                    </div>
+                    <div>
+                        <label class="form-label small text-secondary">Date of Birth</label>
+                        <input type="date" name="date_of_birth" class="form-control form-control-sm"
+                            value="{{ form.date_of_birth.value|default:'' }}">
+                    </div>
+                    <div>
+                        <label class="form-label small text-secondary">Bio</label>
+                        <textarea name="bio" class="form-control form-control-sm"
+                            rows="2">{{ form.bio.value|default:'' }}</textarea>
+                    </div>
+                    <div>
+                        <label class="form-label small text-secondary">Profile Picture</label>
+                        <input type="file" name="avatar" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: addresses -->
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Saved Addresses</h5>
+            <a href="{% url 'accounts:add-address' %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Add Address
+            </a>
+        </div>
+        {% for address in addresses %}
+        <div class="card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <strong>{{ address.full_name }}</strong>
+                        <span class="badge bg-secondary">{{ address.get_address_type_display }}</span>
+                        {% if address.is_default %}<span class="badge bg-success">Default</span>{% endif %}
+                    </div>
+                    <div class="text-secondary small lh-lg">
+                        {{ address.address_line1 }}{% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}<br>
+                        {{ address.city }}, {{ address.state }} — {{ address.pincode }}<br>
+                        <i class="bi bi-telephone me-1"></i>{{ address.phone }}
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-1">
+                    <a href="{% url 'accounts:edit-address' address.pk %}"
+                        class="btn btn-outline-secondary btn-sm">Edit</a>
+                    {% if not address.is_default %}
+                    <form method="post" action="{% url 'accounts:set-default-address' address.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-success btn-sm w-100" type="submit">Set Default</button>
+                    </form>
+                    <form method="post" action="{% url 'accounts:delete-address' address.pk %}"
+                        onsubmit="return confirm('Delete this address?')">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-danger btn-sm w-100" type="submit">Delete</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card p-4 text-center text-secondary">
+            <i class="bi bi-geo-alt fs-3 mb-2"></i>
+            <p class="mb-0">No addresses saved yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

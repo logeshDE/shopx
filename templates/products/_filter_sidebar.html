@@ -1,0 +1,212 @@
+{% load query_tags %}
+
+<form method="get" id="filter-form">
+
+    {# Preserve sort so changing a filter doesn't reset sort order #}
+    {% if sort_key and sort_key != 'newest' %}
+    <input type="hidden" name="sort" value="{{ sort_key }}">
+    {% endif %}
+
+    {# ── Active filter chips ─────────────────────────────────── #}
+    {% if q or min_price or max_price or selected_brand_ids or in_stock or discount %}
+    <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span style="font-size:11px;font-weight:500;color:#8b949e;
+                     text-transform:uppercase;letter-spacing:.06em">Active Filters</span>
+            <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% else %}{% url 'products:list' %}{% endif %}"
+                style="font-size:11px;color:#f85149;text-decoration:none">Clear all</a>
+        </div>
+        <div class="d-flex flex-wrap gap-1">
+            {% if q %}
+            <a href="?{% querystring q=None %}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                    background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                    font-size:11px;color:#e6edf3;text-decoration:none">
+                "{{ q }}" <span style="color:#8b949e">×</span>
+            </a>
+            {% endif %}
+            {% if min_price %}
+            <a href="?{% querystring min_price=None %}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                    background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                    font-size:11px;color:#e6edf3;text-decoration:none">
+                Min ₹{{ min_price }} <span style="color:#8b949e">×</span>
+            </a>
+            {% endif %}
+            {% if max_price %}
+            <a href="?{% querystring max_price=None %}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                    background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                    font-size:11px;color:#e6edf3;text-decoration:none">
+                Max ₹{{ max_price }} <span style="color:#8b949e">×</span>
+            </a>
+            {% endif %}
+            {% if discount %}
+            <a href="?{% querystring discount=None %}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                    background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                    font-size:11px;color:#e6edf3;text-decoration:none">
+                {{ discount }}%+ OFF <span style="color:#8b949e">×</span>
+            </a>
+            {% endif %}
+            {% if in_stock %}
+            <a href="?{% querystring in_stock=None %}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                    background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                    font-size:11px;color:#e6edf3;text-decoration:none">
+                In Stock <span style="color:#8b949e">×</span>
+            </a>
+            {% endif %}
+            {# Brand chips removed via JS (multi-value param) #}
+            {% for bid in selected_brand_ids %}
+            <span id="brand-chip-{{ bid }}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                       background:#1f2937;border:1px solid #30363d;border-radius:100px;
+                       font-size:11px;color:#e6edf3;cursor:pointer" onclick="removeBrandFilter('{{ bid }}')">
+                <span class="brand-name-{{ bid }}">Brand</span>
+                <span style="color:#8b949e">×</span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Search (if not already in URL) ─────────────────────── #}
+    {% if not q %}
+    <div class="mb-4 pb-4" style="border-bottom:1px solid #30363d">
+        <h6 style="font-size:11px;font-weight:500;color:#8b949e;
+                 text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            Search
+        </h6>
+        <div class="input-group input-group-sm">
+            <input type="text" name="q" class="form-control"
+                style="background:#0d1117;border-color:#30363d;color:#e6edf3" placeholder="Keywords…">
+            <button class="btn btn-outline-secondary" type="submit">Go</button>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Categories ──────────────────────────────────────────── #}
+    <div class="mb-4 pb-4" style="border-bottom:1px solid #30363d">
+        <h6 style="font-size:11px;font-weight:500;color:#8b949e;
+               text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            Categories
+        </h6>
+        <ul class="list-unstyled mb-0" style="font-size:.8rem">
+            <li class="mb-1">
+                <a href="{% url 'products:list' %}{% if q %}?q={{ q }}{% endif %}" style="text-decoration:none;
+                  color:{% if not current_category %}#3fb950{% else %}#8b949e{% endif %}">
+                    All Products
+                </a>
+            </li>
+            {% for cat in all_categories %}
+            <li class="mb-1 mt-2">
+                <a href="{{ cat.get_absolute_url }}" style="text-decoration:none;font-weight:500;
+                    color:{% if current_category.pk == cat.pk %}#3fb950{% else %}#c9d1d9{% endif %}">
+                    {{ cat.name }}
+                </a>
+                {% for child in cat.children.all %}
+                {% if child.is_active %}
+                <div class="ms-3 mt-1">
+                    <a href="{{ child.get_absolute_url }}" style="text-decoration:none;
+                          color:{% if current_category.pk == child.pk %}#3fb950{% else %}#8b949e{% endif %}">
+                        {{ child.name }}
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {# ── Price range ─────────────────────────────────────────── #}
+    <div class="mb-4 pb-4" style="border-bottom:1px solid #30363d">
+        <h6 style="font-size:11px;font-weight:500;color:#8b949e;
+               text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            Price Range
+        </h6>
+        <div class="d-flex gap-2 mb-2">
+            <input type="number" name="min_price" value="{{ min_price }}" placeholder="₹ Min"
+                class="form-control form-control-sm" style="background:#0d1117;border-color:#30363d;color:#e6edf3">
+            <input type="number" name="max_price" value="{{ max_price }}" placeholder="₹ Max"
+                class="form-control form-control-sm" style="background:#0d1117;border-color:#30363d;color:#e6edf3">
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+            Apply Price
+        </button>
+    </div>
+
+    {# ── Brands ──────────────────────────────────────────────── #}
+    {% if all_brands %}
+    <div class="mb-4 pb-4" style="border-bottom:1px solid #30363d">
+        <h6 style="font-size:11px;font-weight:500;color:#8b949e;
+                 text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            Brand
+        </h6>
+        <div id="brand-list" style="max-height:200px;overflow-y:auto">
+            {% for brand in all_brands %}
+            <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" name="brand" value="{{ brand.id }}"
+                    id="brand-{{ brand.id }}" data-brand-name="{{ brand.name }}"
+                    {% if brand.id|stringformat:"s" in selected_brand_ids %}checked{% endif %}
+                    onchange="document.getElementById('filter-form').submit()">
+                <label class="form-check-label d-flex justify-content-between" for="brand-{{ brand.id }}"
+                    style="font-size:.8rem;color:#c9d1d9;cursor:pointer">
+                    {{ brand.name }}
+                    <span style="color:#8b949e">({{ brand.product_count }})</span>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Discount ─────────────────────────────────────────────── #}
+    <div class="mb-4 pb-4" style="border-bottom:1px solid #30363d">
+        <h6 style="font-size:11px;font-weight:500;color:#8b949e;
+               text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+            Discount
+        </h6>
+        {% for pct in discount_options %}
+        <div class="form-check mb-1">
+            <input class="form-check-input" type="radio" name="discount" value="{{ pct }}" id="disc-{{ pct }}" {% if discount == pct|stringformat:"s" %}checked{% endif %}
+                onchange="document.getElementById('filter-form').submit()">
+            <label class="form-check-label" for="disc-{{ pct }}" style="font-size:.8rem;color:#c9d1d9;cursor:pointer">
+                {{ pct }}% or more off
+            </label>
+        </div>
+        {% endfor %}
+        {% if discount %}
+        <a href="?{% querystring discount=None %}" style="font-size:11px;color:#8b949e;text-decoration:none">Clear
+            discount</a>
+        {% endif %}
+    </div>
+
+    {# ── Availability ─────────────────────────────────────────── #}
+    <div class="mb-2">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="in_stock" value="1" id="in-stock-toggle"
+                {% if in_stock %}checked{% endif %} onchange="document.getElementById('filter-form').submit()">
+            <label class="form-check-label" for="in-stock-toggle" style="font-size:.85rem;color:#c9d1d9;cursor:pointer">
+                In Stock Only
+            </label>
+        </div>
+    </div>
+
+</form>
+
+<script>
+    // Populate brand chip labels from checkbox data attributes
+    document.querySelectorAll('input[name="brand"]').forEach(function (cb) {
+        const chip = document.getElementById('brand-chip-' + cb.value);
+        if (chip) {
+            const nameEl = chip.querySelector('.brand-name-' + cb.value);
+            if (nameEl) nameEl.textContent = cb.dataset.brandName;
+        }
+    });
+
+    // Remove a single brand from the multi-value brand param
+    function removeBrandFilter(brandId) {
+        const url = new URL(window.location.href);
+        const brands = url.searchParams.getAll('brand').filter(b => b !== brandId);
+        url.searchParams.delete('brand');
+        brands.forEach(b => url.searchParams.append('brand', b));
+        url.searchParams.delete('page');
+        window.location.href = url.toString();
+    }
+</script>

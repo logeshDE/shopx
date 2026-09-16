@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Login — ShopX{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card p-4 mt-3">
+            <h4 class="mb-4 text-center">Welcome Back</h4>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="d-flex flex-column gap-3">
+                    <input type="email" name="email" class="form-control" id="email-field" placeholder="Email Address"
+                        value="{{ form.email.value|default:'' }}" autofocus>
+                    <input type="password" name="password" class="form-control" placeholder="Password">
+                    {% if form.errors %}
+                    <div class="alert alert-danger py-2 mb-0">Invalid email or password.</div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-success">Log In</button>
+                </div>
+            </form>
+            <div class="text-center mt-3">
+                <small class="text-secondary">
+                    Didn't get the verification email?
+                    <form method="post" action="{% url 'accounts:resend-verification' %}" class="d-inline"
+                        id="resend-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" id="resend-email">
+                        <button type="submit" class="btn btn-link btn-sm p-0 text-success">Resend it</button>
+                    </form>
+                </small>
+            </div>
+            <p class="text-center text-secondary mt-3 mb-0">
+                New here? <a href="{% url 'accounts:register' %}" class="text-success">Create an account</a>
+            </p>
+        </div>
+    </div>
+</div>
+<script>
+    const emailField = document.getElementById('email-field');
+    const resendInput = document.getElementById('resend-email');
+    function sync() { resendInput.value = emailField.value; }
+    emailField.addEventListener('input', sync);
+    sync();
+</script>
+{% endblock %}

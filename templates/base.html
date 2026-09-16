@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ShopX{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #0d1117;
+        }
+
+        .navbar {
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+        }
+
+        .form-control,
+        .form-select {
+            background: #0d1117;
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: #0d1117;
+            border-color: #58a6ff;
+            color: #e6edf3;
+            box-shadow: 0 0 0 .2rem rgba(88, 166, 255, .15);
+        }
+
+        .btn-success {
+            background: #238636;
+            border-color: #238636;
+        }
+
+        .btn-success:hover {
+            background: #2ea043;
+            border-color: #2ea043;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background:#161b22;border-bottom:1px solid #30363d">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'products:home' %}">
+                <i class="bi bi-bag-fill text-success me-1"></i>ShopX
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+
+                {# ── Search bar ────────────────────────────────────────── #}
+                <form class="d-flex mx-auto position-relative" style="width:min(480px,100%)"
+                    action="{% url 'products:list' %}" method="get" id="search-form" autocomplete="off">
+                    <div class="input-group">
+                        <input type="text" name="q" id="search-input" class="form-control"
+                            style="background:#0d1117;border-color:#30363d;color:#e6edf3"
+                            placeholder="Search products, brands, categories…" value="{{ request.GET.q|default:'' }}">
+                        <button class="btn btn-success px-3" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+
+                    {# Autocomplete dropdown #}
+                    <div id="ac-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                    background:#161b22;border:1px solid #30363d;border-radius:8px;
+                    z-index:9999;max-height:400px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+                    </div>
+                </form>
+
+                {# ── Right nav ─────────────────────────────────────────── #}
+                <ul class="navbar-nav ms-3 align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                    {# Wishlist #}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{% url 'wishlist:detail' %}">
+                            <i class="bi bi-heart" style="font-size:1.1rem"></i>
+                            {% if wishlist_count %}
+                            <span
+                                class="wishlist-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                style="font-size:.6rem">{{ wishlist_count }}</span>
+                            {% else %}
+                            <span
+                                class="wishlist-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                style="font-size:.6rem">0</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {# Cart #}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{% url 'cart:detail' %}">
+                            <i class="bi bi-cart3" style="font-size:1.1rem"></i>
+                            {% if cart_count %}
+                            <span
+                                class="cart-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                                style="font-size:.6rem">{{ cart_count }}</span>
+                            {% else %}
+                            <span
+                                class="cart-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success d-none"
+                                style="font-size:.6rem">0</span>
+                            {% endif %}
+                        </a>
+                    {# Notification bell #}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link position-relative" href="#" data-bs-toggle="dropdown" id="notif-bell">
+                            <i class="bi bi-bell" style="font-size:1.1rem"></i>
+                            {% if unread_notification_count %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                style="font-size:.6rem" id="notif-badge">
+                                {{ unread_notification_count }}
+                            </span>
+                            {% else %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                style="font-size:.6rem" id="notif-badge">
+                                0
+                            </span>
+                            {% endif %}
+                        </a>
+
+                        {# Notification dropdown #}
+                        <div class="dropdown-menu dropdown-menu-end p-0"
+                            style="width:340px;background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden">
+                            <div class="d-flex justify-content-between align-items-center px-3 py-2"
+                                style="border-bottom:1px solid #30363d">
+                                <span class="fw-medium" style="color:#e6edf3;font-size:.875rem">Notifications</span>
+                                <a href="{% url 'notifications:list' %}"
+                                    style="font-size:.78rem;color:#58a6ff;text-decoration:none">View all</a>
+                            </div>
+
+                            {% if latest_notifications %}
+                            {% for notif in latest_notifications %}
+                            <a href="{{ notif.link|default:'#' }}"
+                                class="d-flex align-items-start gap-2 px-3 py-2 text-decoration-none"
+                                style="border-bottom:1px solid #21262d;background:{% if not notif.is_read %}#1c2128{% else %}transparent{% endif %};transition:background .1s"
+                                onmouseenter="this.style.background='#1f2937'"
+                                onmouseleave="this.style.background='{% if not notif.is_read %}#1c2128{% else %}transparent{% endif %}'">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style="width:32px;height:32px;background:#0d1117;color:{{ notif.color }};font-size:.8rem">
+                                    <i class="bi {{ notif.icon }}"></i>
+                                </div>
+                                <div class="flex-grow-1 min-width-0">
+                                    <div style="font-size:.78rem;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                        {{ notif.title }}
+                                        {% if not notif.is_read %}
+                                        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#388bfd;margin-left:4px;vertical-align:middle"></span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-secondary" style="font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                        {{ notif.message|truncatechars:55 }}
+                                    </div>
+                                    <div class="text-secondary" style="font-size:.68rem;margin-top:2px">
+                                        {{ notif.created_at|timesince }} ago
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                            {% else %}
+                            <div class="text-center py-4 text-secondary" style="font-size:.8rem">
+                                <i class="bi bi-bell-slash mb-1" style="font-size:1.5rem"></i>
+                                <p class="mb-0">No notifications yet</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>{{ user.first_name|default:user.email }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="background:#161b22;border-color:#30363d">
+                            {% if user.is_staff %}
+                            <li>
+                                <a class="dropdown-item text-light" href="{% url 'dashboard:home' %}">
+                                    <i class="bi bi-speedometer2 me-1 text-success"></i>Admin Dashboard
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider" style="border-color:#30363d"></li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item text-light" href="{% url 'accounts:profile' %}">
+                                    My Profile
+                                </a>
+                            </li>
+                            <li><a class="dropdown-item text-light" href="{% url 'orders:list' %}">My Orders</a></li>
+                            <li>
+                                <hr class="dropdown-divider" style="border-color:#30363d">
+                            </li>
+                            <li>
+                                <form method="post" action="{% url 'accounts:logout' %}">
+                                    {% csrf_token %}
+                                    <button class="dropdown-item text-danger" type="submit">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    {# Cart for anonymous #}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{% url 'cart:detail' %}">
+                            <i class="bi bi-cart3" style="font-size:1.1rem"></i>
+                            {% if cart_count %}
+                            <span
+                                class="cart-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                                style="font-size:.6rem">{{ cart_count }}</span>
+                            {% else %}
+                            <span
+                                class="cart-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success d-none"
+                                style="font-size:.6rem">0</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'accounts:login' %}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-success btn-sm" href="{% url 'accounts:register' %}">Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" style="filter:invert(1)"></button>
+        </div>
+        {% endfor %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const input = document.getElementById('search-input');
+            const drop = document.getElementById('ac-dropdown');
+            const URL = '{% url "products:autocomplete" %}';
+            let timer = null;
+            let active = -1; // keyboard nav index
+
+            if (!input) return;
+
+            // ── Debounced fetch ─────────────────────────────────────────
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                const q = this.value.trim();
+                if (q.length < 2) { hideDrop(); return; }
+                timer = setTimeout(() => fetchSuggestions(q), 280);
+            });
+
+            function fetchSuggestions(q) {
+                drop.innerHTML = '<div style="padding:12px 16px;color:#8b949e;font-size:13px">Searching…</div>';
+                showDrop();
+                fetch(`${URL}?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(data => renderDrop(data, q))
+                    .catch(() => hideDrop());
+            }
+
+            // ── Render dropdown ─────────────────────────────────────────
+            function renderDrop(data, q) {
+                const hasProducts = data.products.length > 0;
+                const hasCategories = data.categories.length > 0;
+
+                if (!hasProducts && !hasCategories) {
+                    drop.innerHTML = `<div style="padding:12px 16px;color:#8b949e;font-size:13px">
+        No results for "<strong style="color:#e6edf3">${esc(q)}</strong>"</div>`;
+                    showDrop(); return;
+                }
+
+                let html = '';
+
+                if (hasCategories) {
+                    html += `<div style="padding:8px 16px 4px;font-size:10px;font-weight:500;
+                            color:#8b949e;letter-spacing:.08em;text-transform:uppercase">
+                 Categories</div>`;
+                    data.categories.forEach(cat => {
+                        html += `<a href="${cat.url}" class="ac-item"
+                    style="display:flex;align-items:center;gap:10px;padding:8px 16px;
+                           text-decoration:none;color:#e6edf3;transition:background .1s"
+                    onmouseenter="this.style.background='#1f2937'"
+                    onmouseleave="this.style.background=''">
+                   <i class="bi bi-grid" style="color:#8b949e;font-size:13px;width:20px"></i>
+                   <span style="font-size:13px">${esc(cat.name)}</span>
+                 </a>`;
+                    });
+                }
+
+                if (hasProducts) {
+                    html += `<div style="padding:${hasCategories ? '4px' : '8px'} 16px 4px;font-size:10px;
+                            font-weight:500;color:#8b949e;letter-spacing:.08em;
+                            text-transform:uppercase;
+                            ${hasCategories ? 'border-top:1px solid #30363d;margin-top:4px' : ''}">
+                 Products</div>`;
+                    data.products.forEach(p => {
+                        const img = p.image
+                            ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;
+                                          border-radius:4px;background:#0d1117">`
+                            : `<div style="width:40px;height:40px;border-radius:4px;background:#0d1117;
+                          display:flex;align-items:center;justify-content:center">
+               <i class="bi bi-image" style="color:#8b949e;font-size:14px"></i></div>`;
+
+                        const badge = p.discount
+                            ? `<span style="font-size:10px;background:#b91c1c;color:#fff;
+                           padding:1px 5px;border-radius:3px;margin-left:4px">
+               -${p.discount}%</span>`
+                            : '';
+
+                        const crossed = p.original_price
+                            ? `<span style="font-size:11px;color:#8b949e;
+                           text-decoration:line-through;margin-left:4px">
+               ${esc(p.original_price)}</span>`
+                            : '';
+
+                        html += `<a href="${p.url}" class="ac-item"
+                    style="display:flex;align-items:center;gap:10px;padding:8px 16px;
+                           text-decoration:none;color:#e6edf3;transition:background .1s"
+                    onmouseenter="this.style.background='#1f2937'"
+                    onmouseleave="this.style.background=''">
+                   ${img}
+                   <div style="flex:1;min-width:0">
+                     <div style="font-size:13px;white-space:nowrap;overflow:hidden;
+                                  text-overflow:ellipsis">${esc(p.name)}</div>
+                     <div style="font-size:11px;color:#8b949e">${esc(p.brand)}</div>
+                   </div>
+                   <div style="text-align:right;white-space:nowrap">
+                     <span style="font-size:13px;color:#3fb950;font-weight:500">
+                       ${esc(p.price)}</span>${crossed}${badge}
+                   </div>
+                 </a>`;
+                    });
+                }
+
+                const searchUrl = `{% url 'products:list' %}?q=${encodeURIComponent(q)}`;
+                html += `<a href="${searchUrl}"
+                style="display:flex;align-items:center;gap:8px;padding:10px 16px;
+                       border-top:1px solid #30363d;text-decoration:none;
+                       color:#58a6ff;font-size:13px;
+                       transition:background .1s"
+                onmouseenter="this.style.background='#1f2937'"
+                onmouseleave="this.style.background=''">
+               <i class="bi bi-search" style="font-size:12px"></i>
+               See all results for "<strong>${esc(q)}</strong>"
+             </a>`;
+
+                drop.innerHTML = html;
+                active = -1;
+                showDrop();
+            }
+
+            // ── Keyboard navigation ─────────────────────────────────────
+            input.addEventListener('keydown', function (e) {
+                const items = drop.querySelectorAll('.ac-item, a[href*="?q="]');
+                if (!items.length) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    active = Math.min(active + 1, items.length - 1);
+                    highlight(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    active = Math.max(active - 1, -1);
+                    highlight(items);
+                } else if (e.key === 'Enter' && active >= 0) {
+                    e.preventDefault();
+                    items[active].click();
+                } else if (e.key === 'Escape') {
+                    hideDrop();
+                    input.blur();
+                }
+            });
+
+            function highlight(items) {
+                items.forEach((el, i) => {
+                    el.style.background = i === active ? '#1f2937' : '';
+                });
+            }
+
+            // ── Show / hide ─────────────────────────────────────────────
+            function showDrop() { drop.style.display = 'block'; }
+            function hideDrop() { drop.style.display = 'none'; active = -1; }
+
+            document.addEventListener('click', function (e) {
+                if (!input.contains(e.target) && !drop.contains(e.target)) {
+                    hideDrop();
+                }
+            });
+
+            input.addEventListener('focus', function () {
+                if (this.value.trim().length >= 2 && drop.innerHTML) showDrop();
+            });
+
+            // ── XSS escape ──────────────────────────────────────────────
+            function esc(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
