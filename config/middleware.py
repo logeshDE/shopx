@@ -11,7 +11,7 @@ import time
 import os
 
 from django.conf import settings
-from django.http import HttpResponseTooManyRequests
+from django.http import HttpResponse
 
 try:
     import redis as redis_lib
@@ -104,6 +104,7 @@ class RateLimitMiddleware:
 
     @staticmethod
     def _too_many_requests():
-        return HttpResponseTooManyRequests(
-            'Too many requests. Please slow down and try again shortly.'
+        return HttpResponse(
+            'Too many requests. Please slow down and try again shortly.',
+            status=429,
         )
