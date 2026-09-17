@@ -8,9 +8,11 @@ click==8.5.0
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
+cloudinary==1.44.1
 daphne==4.1.2
 dj-database-url==2.3.0
 Django==6.1.1
+django-cloudinary-storage==0.3.0
 django-cors-headers==4.9.0
 django-filter==26.1
 django-js-asset==4.1.0
